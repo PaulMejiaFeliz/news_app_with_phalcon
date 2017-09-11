@@ -33,15 +33,17 @@
                 </div>
                 <div class='panel-footer'>
                     <h3>Comments</h3>
-                    <form action='/addComment' method='post' class='form-inline'>
-                        <input type='hidden' name='newId' value='<?= $post->id ?>'>
+                    <?php if ($this->session->has('user')) : ?>
+                    <form action='/comments/addComment' method='post' class='form-inline'>
+                        <input type='hidden' name='postId' value='<?= $post->id ?>'>
                         <div class='input-group'>
                             <span class='input-group-addon'>New Comment</span>
                             <textarea cols='60' rows='3' class='form-control' type='text' name='content' required></textarea>
                         </div>
-                            <input type='submit' class='btn btn-primary' value='Publish'>
+                        <input type='submit' class='btn btn-primary' value='Publish'>
                     </form>
                     <br/>
+                    <?php endif; ?>
                     <div class='row'>
                         <?php if (count($page->items)) : ?>
                             <?php foreach ($page->items as $comment) : ?>
@@ -80,7 +82,7 @@
                             <?php endforeach; ?>
                             <div class='row'>
                                 <div class='col-md-10 col-md-offset-1 text-center'>
-                                    <?= Newsapp\Helpers\CustomTags::pagination($page->last, $page->current) ?>
+                                    <?= $this->customTags->pagination($page->last, $page->current) ?>
                                 </div>
                             </div>
                         <?php else : ?>
@@ -101,7 +103,7 @@
                 <button type='button' class='close' data-dismiss='modal'>&times;</button>
                 <h4 class='modal-title'>Edit Comment</h4>
             </div>
-            <form action='/index/editComment' method='post'>
+            <form action='/comments/editComment' method='post'>
                 <div class='modal-body'>
                     <div class='row'>
                         <div class='col col-md-10 col-md-offset-1'>
@@ -144,7 +146,7 @@
             </div>
             <div class='modal-footer'>
                 <div class='row'>
-                    <form action='/index/deleteComment' method='post'>
+                    <form action='/comments/deleteComment' method='post'>
                         <input name='_method' type='hidden' value='delete'>
                         <input id='deleteCommentFormCommentId' name='commentId' type='hidden'/>
                         <div class='col col-md-5'>

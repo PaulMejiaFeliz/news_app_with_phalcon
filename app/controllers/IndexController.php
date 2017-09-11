@@ -102,7 +102,6 @@ class IndexController extends Newsapp\Controllers\BaseController
             ]
         );
         $this->view->searchFields = $this->filterFields;
-        $this->view->customTags = $this->customTags;
         $this->view->page = $paginator->getPaginate();
     }
 
@@ -238,13 +237,17 @@ class IndexController extends Newsapp\Controllers\BaseController
         
         $paginator = new PaginatorModel(
             [
-                'data'  => $post->comments,
+                'data'  => $post->getComments(
+                    [
+                        'isDeleted = 0'
+                    ]
+                ),
                 'limit' => 3,
                 'page'  => $currentPage,
             ]
         );
 
-        $this->view->title = $post->title;
+        Tag::prependTitle($post->title);
         $this->view->post = $post;
         $this->view->page = $paginator->getPaginate();
     }

@@ -1,50 +1,57 @@
-<?php namespace newsapp\controllers;
+<?php
 
-use newsapp\core\App;
-use newsapp\core\Controller;
+use Newsapp\Models\Validations\CommentValidation;
+use Newsapp\Models\Validations\EditCommentValidation;
 
 /**
  * Class with the comments CRUD
  */
-class CommentsController extends Controller
+class CommentsController extends Newsapp\Controllers\BaseController
 {
     /**
      * Creates a new comment in a news
      */
     public function addCommentAction()
     {
-        $this->startSession();
-        
-        extract($_POST);
-        if (isset($_SESSION['logged'])) {
-            $user = $_SESSION['user'];
-
-            if (strlen(trim($newId)) == 0) {
-                $this->view('notFound', [ 'message' => 'Post not found' ]);
-                return;
-            } else {
-                $post = App::get('qBuilder')->selectById('news', $newId);
-                if ($post['is_deleted']) {
-                    $this->view('notFound', [ 'message' => 'Post not found' ]);
-                    return;
-                }
-            }
-            if (strlen(trim($content)) > 0) {
-
-                App::get('qBuilder')->insert(
-                    'news_comments',
-                    [
-                        'user' => $user['id'],
-                        'new' => $newId,
-                        'content' => trim($content),
-                        'created_at' => date('Y-m-d H:i:s')
-                    ]
-                );
-            }
-            header("Location: /postDetails?id={$newId}");
+        if (! $this->confirmSession()) {
             return;
         }
-        header('Location: /login');
+
+        $this->view->disable();
+        if ($this->request->isPost()) {
+            $validator = new CommentValidation();
+            $errorMessages = $validator->validate($this->request->getPost());
+            
+            if (count($errorMessages)) {
+                $this->response->redirect('/index/notFound');
+                return;
+            }
+
+            $postId = $this->request->getPost('postId');
+
+            $post = News::findFirst([
+                'conditions' => 'id = ?0 AND isDeleted = 0',
+                'bind' => [
+                    $postId
+                ]
+            ]);
+    
+            if (!$post) {
+                $this->response->redirect('/index/notFound');
+                return;
+            }
+
+            $comment = new Comments();
+
+            $comment->userId = $this->session->get('user')['id'];
+            $comment->newsId = $postId;
+            $comment->content = $this->request->getPost('content');
+            $comment->createdAt = date('Y-m-d H:i:s');
+
+            $comment->save();
+
+            $this->response->redirect("/index/postDetails?id={$postId}");
+        }
     }
 
     /**
@@ -52,35 +59,40 @@ class CommentsController extends Controller
      */
     public function editCommentAction()
     {
-        $this->startSession();
-        
-        if (!isset($_SESSION['logged'])) {
-            header('Location: /login');
+        if (! $this->confirmSession()) {
             return;
         }
-        
-        if (isset($_POST['commentId'])) {
-            $qBuilder = App::get('qBuilder');
-            extract($_POST);
-            $comment = $qBuilder->selectById('news_comments', $commentId);
+
+        $this->view->disable();
+        if ($this->request->isPost()) {
+            $validator = new EditCommentValidation();
+            $errorMessages = $validator->validate($this->request->getPost());
             
-            if (! $comment['is_deleted']
-                && strlen(trim($content)) > 0
-                && $comment['user'] == $_SESSION['user']['id']
-            ) {
-                $qBuilder->update(
-                    'news_comments',
-                    $comment['id'],
-                    [
-                        'content' => $content,
-                        'updated_at' => date('Y-m-d H:i:s')
-                    ]
-                );
+            if (count($errorMessages)) {
+                $this->response->redirect('/index/notFound');
+                return;
             }
-            header("Location: /postDetails?id={$comment['new']}");
-            return;
+
+            $comment = Comments::findFirst([
+                'conditions' => 'id = ?0 AND isDeleted = 0 AND userId = ?1',
+                'bind' => [
+                    $this->request->getPost('commentId'),
+                    $this->session->get('user')['id']
+                ]
+            ]);
+    
+            if (!$comment) {
+                $this->response->redirect('/index/notFound');
+                return;
+            }
+
+            $comment->content = $this->request->getPost('content');
+            $comment->updatedAt = date('Y-m-d H:i:s');
+
+            $comment->save();
+
+            $this->response->redirect("/index/postDetails?id={$comment->newsId}");
         }
-        header('Location: /');
     }
 
     /**
@@ -88,31 +100,31 @@ class CommentsController extends Controller
      */
     public function deleteCommentAction()
     {
-        $this->startSession();
-        if (!$_SESSION['logged']) {
-            header('Location: /login');
+        if (! $this->confirmSession()) {
             return;
         }
-        if (isset($_POST['commentId'])) {
-            $qBuilder = App::get('qBuilder');
 
-            $comment = $qBuilder->selectById('news_comments', $_POST['commentId']);
-            
-            if (! $comment['is_deleted']
-                && $comment['user'] === $_SESSION['user']['id']
-            ) {
-                $qBuilder->update(
-                    'news_comments',
-                    $comment['id'],
-                    [
-                        'is_deleted' => 1,
-                        'updated_at' => date('Y-m-d H:i:s')
-                    ]
-                );
+        $this->view->disable();
+        if ($this->request->hasPost('commentId')) {
+            $comment = Comments::findFirst([
+                'conditions' => 'id = ?0 AND isDeleted = 0 AND userId = ?1',
+                'bind' => [
+                    $this->request->getPost('commentId'),
+                    $this->session->get('user')['id']
+                ]
+            ]);
+    
+            if (!$comment) {
+                $this->response->redirect('/index/notFound');
+                return;
             }
-            header("Location: /postDetails?id={$comment['new']}");
-            return;
+
+            $comment->isDeleted = 1;
+            $comment->updatedAt = date('Y-m-d H:i:s');
+
+            $comment->save();
+
+            $this->response->redirect("/index/postDetails?id={$comment->newsId}");
         }
-        header('Location: /');
     }
 }

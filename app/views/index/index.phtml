@@ -30,14 +30,14 @@
                     <thead>
                         <tr>
                             <th>
-                                <?= $customTags->orderByAnchor('Title', 'title'); ?> 
+                                <?= $this->customTags->orderByAnchor('Title', 'title'); ?> 
                             </th>
                             <th>Author</th>
                             <th>
-                                <?= $customTags->orderByAnchor('Posted Date', 'createdAt'); ?>
+                                <?= $this->customTags->orderByAnchor('Posted Date', 'createdAt'); ?>
                             </th>
                             <th>
-                                <?= $customTags->orderByAnchor('Views Count', 'views'); ?>
+                                <?= $this->customTags->orderByAnchor('Views Count', 'views'); ?>
                             </th>
                         </tr>
                     </thead>
@@ -54,7 +54,7 @@
                 </table>
                 <div class='row'>
                     <div class='col-md-10 col-md-offset-1 text-center'>
-                        <?= $customTags->pagination($page->last, $page->current) ?>
+                        <?= $this->customTags->pagination($page->last, $page->current) ?>
                     </div>
                 </div>              
             <?php else : ?>
