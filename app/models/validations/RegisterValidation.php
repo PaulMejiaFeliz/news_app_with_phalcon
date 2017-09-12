@@ -8,6 +8,9 @@ use Phalcon\Validation\Validator\PresenceOf;
 use Phalcon\Validation\Validator\Confirmation;
 use Phalcon\Validation\Validator\StringLength;
 
+/**
+ * Validates the register form
+ */
 class RegisterValidation extends Validation
 {
     public function initialize()

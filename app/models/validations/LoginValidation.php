@@ -6,6 +6,9 @@ use Phalcon\Validation;
 use Phalcon\Validation\Validator\Email;
 use Phalcon\Validation\Validator\PresenceOf;
 
+/**
+ * Validates the login form
+ */
 class LoginValidation extends Validation
 {
     public function initialize()
