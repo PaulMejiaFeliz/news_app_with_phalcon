@@ -13,9 +13,7 @@ class CommentsController extends Newsapp\Controllers\BaseController
      */
     public function addCommentAction()
     {
-        if (! $this->confirmSession()) {
-            return;
-        }
+        $this->confirmSession();
 
         $this->view->disable();
         if ($this->request->isPost()) {
@@ -23,7 +21,7 @@ class CommentsController extends Newsapp\Controllers\BaseController
             $errorMessages = $validator->validate($this->request->getPost());
             
             if (count($errorMessages)) {
-                $this->response->redirect('/index/notFound');
+                $this->redirect('/index/notFound');
                 return;
             }
 
@@ -37,7 +35,7 @@ class CommentsController extends Newsapp\Controllers\BaseController
             ]);
     
             if (!$post) {
-                $this->response->redirect('/index/notFound');
+                $this->redirect('/index/notFound');
                 return;
             }
 
@@ -50,7 +48,7 @@ class CommentsController extends Newsapp\Controllers\BaseController
 
             $comment->save();
 
-            $this->response->redirect("/index/postDetails?id={$postId}");
+            $this->redirect("/index/postDetails?id={$postId}");
         }
     }
 
@@ -59,9 +57,7 @@ class CommentsController extends Newsapp\Controllers\BaseController
      */
     public function editCommentAction()
     {
-        if (! $this->confirmSession()) {
-            return;
-        }
+        $this->confirmSession();
 
         $this->view->disable();
         if ($this->request->isPost()) {
@@ -69,7 +65,7 @@ class CommentsController extends Newsapp\Controllers\BaseController
             $errorMessages = $validator->validate($this->request->getPost());
             
             if (count($errorMessages)) {
-                $this->response->redirect('/index/notFound');
+                $this->redirect('/index/notFound');
                 return;
             }
 
@@ -82,7 +78,7 @@ class CommentsController extends Newsapp\Controllers\BaseController
             ]);
     
             if (!$comment) {
-                $this->response->redirect('/index/notFound');
+                $this->redirect('/index/notFound');
                 return;
             }
 
@@ -91,7 +87,7 @@ class CommentsController extends Newsapp\Controllers\BaseController
 
             $comment->save();
 
-            $this->response->redirect("/index/postDetails?id={$comment->newsId}");
+            $this->redirect("/index/postDetails?id={$comment->newsId}");
         }
     }
 
@@ -100,10 +96,7 @@ class CommentsController extends Newsapp\Controllers\BaseController
      */
     public function deleteCommentAction()
     {
-        if (! $this->confirmSession()) {
-            return;
-        }
-
+        $this->confirmSession();
         $this->view->disable();
         if ($this->request->hasPost('commentId')) {
             $comment = Comments::findFirst([
@@ -115,7 +108,7 @@ class CommentsController extends Newsapp\Controllers\BaseController
             ]);
     
             if (!$comment) {
-                $this->response->redirect('/index/notFound');
+                $this->redirect('/index/notFound');
                 return;
             }
 
@@ -124,7 +117,7 @@ class CommentsController extends Newsapp\Controllers\BaseController
 
             $comment->save();
 
-            $this->response->redirect("/index/postDetails?id={$comment->newsId}");
+            $this->redirect("/index/postDetails?id={$comment->newsId}");
         }
     }
 }

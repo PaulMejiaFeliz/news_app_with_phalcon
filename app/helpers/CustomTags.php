@@ -18,13 +18,12 @@ class CustomTags extends Tag
     }
 
     /**
-     * Displays the pagination controls
+     * return a set of navigation controls for a pagination
      *
-     * @param int $count Total number of items
-     * @param int $itemsPerPage Number of items per page
-     * @param int $linksCount Maximun number of links in the pagination controls
-     * @param int $current Current page
-     * @return void
+     * @param int $totalPages
+     * @param int $currentPage
+     * @param int $pageLinksCount Maximun number of links in the pagination controls
+     * @return string HTML representation off the navigation controls
      */
     public function pagination(int $totalPages, int $currentPage, int $pageLinksCount = 5) : string
     {
@@ -63,7 +62,7 @@ class CustomTags extends Tag
     }
 
      /**
-     * Retrieves an a tag for an order by column title
+     * return an a tag for an order by column title
      *
      * @param string $label Labe of the a tag
      * @param string $value Name of the column to order by

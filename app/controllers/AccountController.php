@@ -22,31 +22,24 @@ class AccountController extends Newsapp\Controllers\BaseController
         }
 
         Tag::prependTitle('Login');
-        
 
         if ($this->request->isPost()) {
             $validator = new LoginValidation();
             $errorMessages = $validator->validate($this->request->getPost());
             if (!count($errorMessages)) {
-                $user = Users::query()
-                    ->where('email = :email:')
-                    ->bind(['email' => $this->request->getPost('email') ])
-                    ->execute()
-                    ->getFirst();
+                $user = Users::findFirst(
+                    [
+                        'conditions' => 'email = ?0',
+                        'bind' => [
+                            $this->request->getPost('email')
+                        ]
+                    ]
+                );
+
                 if ($user) {
                     if ($this->security->checkHash($this->request->getPost('password'), $user->password)) {
-                        $this->session->set(
-                            'user',
-                            [
-                                'id' => $user->id,
-                                'name' => $user->name,
-                                'lastName' => $user->lastName,
-                                'email' => $user->email
-                            ]
-                        );
-
-                        $this->view->disable();
-                        $this->response->redirect('/');
+                        $this->loginUser($user);
+                        $this->redirect('/');
                         return;
                     } else {
                         $errorMessages->appendMessage(new Message('The passwords do not match.'));
@@ -61,13 +54,12 @@ class AccountController extends Newsapp\Controllers\BaseController
     }
 
     /**
-     * Logouts the current user if where is any
+     * Logouts the current user if there is any
      */
     public function logoutAction()
     {
         $this->session->destroy();
-        $this->view->disable();
-        $this->response->redirect('/');
+        $this->redirect('/');
     }
 
     /**
@@ -76,50 +68,60 @@ class AccountController extends Newsapp\Controllers\BaseController
     public function registerAction()
     {
         if ($this->session->has('user')) {
-            $this->view->disable();
-            $this->response->redirect('/');
+            $this->redirect('/');
             return;
         }
         Tag::prependTitle('Register');
 
         if ($this->request->isPost()) {
+            $user = new Users();
+            $user->assign($this->request->getPost());
+            
             $validator = new RegisterValidation();
             $errorMessages = $validator->validate($this->request->getPost());
             if (!count($errorMessages)) {
-                $user = Users::query()
-                    ->where('email = :email:')
-                    ->bind(['email' => $this->request->getPost('email') ])
-                    ->execute()
-                    ->getFirst();
-                if (!$user) {
-                    $user = new Users();
-                    $user->name = $this->request->getPost('name');
-                    $user->lastName = $this->request->getPost('lastName');
-                    $user->email = $this->request->getPost('email');
-                    $user->password =  $this->security->hash($this->request->getPost('password'));
-                    $user->save();
-
-                    $this->session->set(
-                        'user',
-                        [
-                            'id' => $user->id,
-                            'name' => $user->name,
-                            'lastName' => $user->lastName,
-                            'email' => $user->email
+                $ConfirmUser = Users::findFirst(
+                    [
+                        'conditions' => 'email = ?0',
+                        'bind' => [
+                            $this->request->getPost('email')
                         ]
-                    );
+                    ]
+                );
 
-                    $this->view->disable();
-                    $this->response->redirect('/');
-                    return;
+                if (!$ConfirmUser) {
+                    if ($user->save()) {
+                        $this->loginUser($user);
+                        $this->redirect('/');
+                    }
                 } else {
                     $errorMessages->appendMessage(new Message('This email address is not available.'));
                 }
             }
-            $this->view->name = $this->request->getPost('name');
-            $this->view->lastName = $this->request->getPost('lastName');
-            $this->view->email = $this->request->getPost('email');
+            
+            $this->view->name = $user->name;
+            $this->view->lastName = $user->lastName;
+            $this->view->email = $user->email;
             $this->view->errorMessages = $errorMessages;
         }
+    }
+
+    /**
+     * Saves a user in the session
+     *
+     * @param Users $user
+     * @return void
+     */
+    private function loginUser(Users $user)
+    {
+        $this->session->set(
+            'user',
+            [
+                'id' => $user->id,
+                'name' => $user->name,
+                'lastName' => $user->lastName,
+                'email' => $user->email
+            ]
+        );
     }
 }

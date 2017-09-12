@@ -1,9 +1,7 @@
 <?php
 
-use Phalcon\Validation\Message;
 use Phalcon\Paginator\Adapter\Model as PaginatorModel;
 use Phalcon\Tag;
-use Newsapp\Models\Validations\PostValidation;
 
 class IndexController extends Newsapp\Controllers\BaseController
 {
@@ -46,10 +44,8 @@ class IndexController extends Newsapp\Controllers\BaseController
      */
     public function myPostsAction()
     {
+        $this->confirmSession();
         Tag::prependTitle('My News');
-        if (! $this->confirmSession()) {
-            return;
-        }
         $this->showNews(['userId' => $this->session->get('user')['id']]);
     }
 
@@ -84,15 +80,20 @@ class IndexController extends Newsapp\Controllers\BaseController
 
         $currentPage = $this->request->getQuery('page', 'int');
 
-        $criteria =  News::query()
-            ->where('isDeleted = 0')
-            ->orderBy($order);
-
+        $conditions = 'isDeleted = 0';
+        $i = 0;
         foreach ($filter as $key => $value) {
-            $criteria->andWhere("{$key} LIKE :{$key}:")
-                ->bind([$key => "%{$value}%"]);
+            $conditions .= " AND {$key} LIKE ?" . $i++;
+            $filter[$key] = "%{$value}%";
         }
-        $news = $criteria->execute();
+
+        $news =  News::find(
+            [
+                'conditions' => $conditions,
+                'bind' => array_values($filter),
+                'order' => $order
+            ]
+        );
 
         $paginator = new PaginatorModel(
             [
@@ -110,33 +111,25 @@ class IndexController extends Newsapp\Controllers\BaseController
      */
     public function addPostAction()
     {
-        if (! $this->confirmSession()) {
-            return;
-        }
+        $this->confirmSession();
         Tag::prependTitle('New Post');
         $this->view->title = '';
         $this->view->content = '';
 
         if ($this->request->isPost()) {
-            $validator = new PostValidation();
-            $errorMessages = $validator->validate($this->request->getPost());
-            if (!count($errorMessages)) {
-                $news = new News();
-                $news->title = $this->request->getPost('title');
-                $news->content = $this->request->getPost('content');
-                $news->userId = $this->session->get('user')['id'];
-                $news->createdAt = date('Y-m-d H:i:s');
+            $news = new News();
+            $news->assign($this->request->getPost());
+            $news->userId = $this->session->get('user')['id'];
+            $news->createdAt = date('Y-m-d H:i:s');
 
-                if ($news->save()) {
-                    $this->response->redirect("index/postDetails?id={$news->id}");
-                    return;
-                }
-                
-                $errorMessages = $news->getMessages();
+            if ($news->save()) {
+                $this->redirect("index/postDetails?id={$news->id}");
+                return;
             }
-            $this->view->title = $this->request->getPost('title');
-            $this->view->content = $this->request->getPost('content');
-            $this->view->errorMessages = $errorMessages;
+            
+            $this->view->title = $news->title;
+            $this->view->content = $news->content;
+            $this->view->errorMessages = $news->getMessages();
         }
     }
 
@@ -145,14 +138,11 @@ class IndexController extends Newsapp\Controllers\BaseController
      */
     public function editPostAction()
     {
-        if (! $this->confirmSession()) {
-            return;
-        }
+        $this->confirmSession();
         Tag::prependTitle('Edit Post');
 
         if (!$this->request->hasQuery('id')) {
-            $this->view->disable();
-            $this->response->redirect('/index/notFound');
+            $this->redirect('/index/notFound');
             return;
         }
         
@@ -167,43 +157,25 @@ class IndexController extends Newsapp\Controllers\BaseController
         ]);
 
         if (!$post) {
-            $this->view->disable();
-            $this->response->redirect('/index/notFound');
+            $this->redirect('/index/notFound');
             return;
         }
-
-        $title = $post->title;
-        $content = $post->content;
     
         if ($this->request->isPost()) {
-            $validator = new PostValidation();
-            $errorMessages = $validator->validate($this->request->getPost());
+            $post->assign($this->request->getPost());
+            $post->updatedAt = date('Y-m-d H:i:s');
 
-            $title = $this->request->getPost('title');
-            $content = $this->request->getPost('content');
-
-            if (!count($errorMessages)) {
-
-                $post->title = $title;
-                $post->content = $content;
-                $post->updatedAt = date('Y-m-d H:i:s');
-
-
-                if ($post->save()) {
-                    $this->view->disable();
-                    $this->response->redirect("index/postDetails?id={$post->id}");
-                    return;
-                }
-                
-                $errorMessages = $post->getMessages();
+            if ($post->save()) {
+                $this->redirect("index/postDetails?id={$post->id}");
+                return;
             }
-
-            $this->view->errorMessages = $errorMessages;
+                
+            $this->view->errorMessages = $post->getMessages();
         }
         
         $this->view->id = $id;
-        $this->view->title = $title;
-        $this->view->content = $content;
+        $this->view->title = $post->title;
+        $this->view->content = $post->content;
     }
 
     /**
@@ -212,8 +184,7 @@ class IndexController extends Newsapp\Controllers\BaseController
     public function postDetailsAction()
     {
         if (!$this->request->hasQuery('id')) {
-            $this->view->disable();
-            $this->response->redirect('/index/notFound');
+            $this->redirect('/index/notFound');
             return;
         }
 
@@ -225,8 +196,7 @@ class IndexController extends Newsapp\Controllers\BaseController
         ]);
 
         if (!$post) {
-            $this->view->disable();
-            $this->response->redirect('/index/notFound');
+            $this->redirect('/index/notFound');
             return;
         }
 
@@ -257,13 +227,10 @@ class IndexController extends Newsapp\Controllers\BaseController
      */
     public function deletePostAction()
     {
-        if (! $this->confirmSession()) {
-            return;
-        }
+        $this->confirmSession();
 
         if (!$this->request->hasPost('PostId')) {
-            $this->view->disable();
-            $this->response->redirect('/index/notFound');
+            $this->redirect('/index/notFound');
             return;
         }
 
@@ -278,8 +245,7 @@ class IndexController extends Newsapp\Controllers\BaseController
         ]);
         
         if (!$post) {
-            $this->view->disable();
-            $this->response->redirect('/index/notFound');
+            $this->redirect('/index/notFound');
             return;
         }
 

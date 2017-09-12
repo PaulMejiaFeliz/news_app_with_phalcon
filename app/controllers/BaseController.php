@@ -4,6 +4,7 @@ namespace Newsapp\Controllers;
 
 use Phalcon\Mvc\Controller;
 use Phalcon\Tag;
+use Newsapp\Exceptions\AccessDeniedException;
 
 class BaseController extends Controller
 {
@@ -15,13 +16,28 @@ class BaseController extends Controller
         Tag::setTitle(' - News App');
     }
 
-    protected function confirmSession() : bool
+    /**
+     * Checks if there's a user logged
+     *
+     * @return void
+     * @throws Newsapp\Exceptions\AccessDeniedException if there isn't a logged user
+     */
+    protected function confirmSession()
     {
         if (! $this->session->has('user')) {
-            $this->view->disable();
-            $this->response->redirect('account/login');
-            return false;
+            throw new AccessDeniedException();
         }
-        return true;
+    }
+
+    /**
+     * Redirects to the given URL
+     *
+     * @param string $url
+     * @return void
+     */
+    protected function redirect(string $url)
+    {
+        $this->view->disable();
+        $this->response->redirect($url);
     }
 }

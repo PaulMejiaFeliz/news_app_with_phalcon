@@ -1,9 +1,5 @@
 <?php
 
-ini_set('display_errors', 1);
-ini_set('display_startup_errors', 1);
-error_reporting(E_ALL);
-
 use Phalcon\Loader;
 use Phalcon\Di\FactoryDefault;
 use Phalcon\Mvc\View;
@@ -32,7 +28,8 @@ $loader->registerNamespaces(
     [
         'Newsapp\Models\Validations' => APP_PATH . '/models/validations/',
         'Newsapp\Controllers' => APP_PATH . '/controllers/',
-        'Newsapp\Helpers' => APP_PATH . '/helpers/'
+        'Newsapp\Helpers' => APP_PATH . '/helpers/',
+        'Newsapp\Exceptions' => APP_PATH . '/exceptions/'
     ]
 );
 
@@ -77,10 +74,10 @@ $di->set(
     function () {
         return new DbAdapter(
             [
-                'host'     => '127.0.0.1',
+                'host' => '127.0.0.1',
                 'username' => 'root',
                 'password' => '1234',
-                'dbname'   => 'news_app_db',
+                'dbname' => 'news_app_db',
             ]
         );
     }
@@ -100,25 +97,11 @@ $application = new Application($di);
 
 
 try {
-    // Handle the request
+  // Handle the request
     $response = $application->handle();
-
     $response->send();
+} catch (Newsapp\Exceptions\AccessDeniedException $e) {
+    header('Location: /account/login');
 } catch (\Exception $e) {
-    echo 'Exception: ', $e->getMessage();
+    header('Location: /index/notFound');
 }
-
-// require 'vendor/autoload.php';
-// require 'core/bootstrap.php';
-
-// use newsapp\core\App;
-// use newsapp\core\Router;
-// use newsapp\core\Request;
-// use newsapp\core\database\Connection;
-
-// App::bind('router', new Router('Home@notFound'));
-
-// require 'routes.php';
-
-// App::get('router')->direct(Request::uri(), Request::method());
-// Connection::closeConnection();
